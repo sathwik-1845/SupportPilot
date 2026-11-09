@@ -70,6 +70,7 @@ function Index() {
             <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#product">Product</a>
             <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#features">Features</a>
             <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#how-it-works">How it works</a>
+            <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#knowledge-base">AI knowledge</a>
             <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#pricing">Pricing</a>
           </nav>
 
@@ -95,6 +96,8 @@ function Index() {
               ["Product", "#product"],
               ["Features", "#features"],
               ["How it works", "#how-it-works"],
+              ["AI knowledge base", "#knowledge-base"],
+              ["FAQ", "#faq"],
               ["Pricing", "#pricing"],
             ].map(([label, href]) => (
               <a
