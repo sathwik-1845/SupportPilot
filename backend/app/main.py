@@ -1,24 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+# This imports the router.py file you just edited
+from app.api.v1 import router as api_v1_router 
 
-from app.api.v1.router import api_router
-from app.core.config import get_settings
+app = FastAPI(title="SupportPilot API")
 
-settings = get_settings()
-
-app = FastAPI(title=settings.app_name, version="0.1.0")
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix="/api/v1")
-
-
+# Add this in main.py
 @app.get("/")
-def root() -> dict[str, str]:
-    return {"name": settings.app_name, "docs": "/docs"}
+def root():
+    return {"message": "Welcome to the SupportPilot API"}
+
+# This now successfully finds the 'router' variable from router.py
+app.include_router(api_v1_router.router, prefix="/api/v1")
