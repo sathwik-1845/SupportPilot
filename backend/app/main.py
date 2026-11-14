@@ -1,26 +1,15 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import router as api_v1_router
 from app.core.config import get_settings
-from app.db.base import Base
-from app.db.session import engine
-from app.models import user as _user_models  # noqa: F401  (registers tables on Base)
+from app.models import tenant as _tenant_models  # noqa: F401  (register models on Base)
+from app.models import user as _user_models  # noqa: F401
 
 settings = get_settings()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Dev convenience: creates missing tables (users, revoked_tokens).
-    # It never ALTERs existing tables. Switch to Alembic migrations before you change columns.
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+# Tables are now managed by Alembic migrations (`alembic upgrade head`), not create_all.
+app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
