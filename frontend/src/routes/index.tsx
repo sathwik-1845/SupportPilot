@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useEffect} from 'react'
 import {
   Activity,
   ArrowDownRight,
@@ -648,23 +647,4 @@ function PlanCard({
       </div>
     </article>
   );
-}
-
-export default function index() {
-  const [data, setData] = useState<{ message: string } | null>(null);
-
-  useEffect(() => {
-    // Thanks to the Vite proxy, this goes to http://localhost:8000/api/v1/health
-    fetch('/api/v1/health')
-      .then(res => res.json())
-      .then(data => setData(data))
-      .catch(err => console.error("Failed to fetch:", err));
-  }, []);
-
-  return (
-    <div className="p-4">
-      <h1>SupportPilot Dashboard</h1>
-      <p>Backend status: {data ? data.message : "Loading..."}</p>
-    </div>
-  )
 }

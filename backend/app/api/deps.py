@@ -1,28 +1,51 @@
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import jwt
-from app.core.security import SECRET_KEY, ALGORITHM
+from sqlalchemy.orm import Session
 
-# This tells FastAPI where the client should go to get the token
+from app.core.security import decode_access_token
+from app.db.session import get_db
+from app.models.user import RevokedToken, User
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
+
+def _credentials_error() -> HTTPException:
+    return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+def get_token_payload(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> dict:
     try:
-        # Decode the token using your secret key
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-            
+        payload = decode_access_token(token)
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired. Please log in again.")
-    except jwt.InvalidTokenError:
-        raise credentials_exception
-        
-    # Return the user data extracted from the token
-    return {"email": email}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+    except jwt.PyJWTError:
+        raise _credentials_error() from None
+
+    if db.get(RevokedToken, payload["jti"]):
+        raise _credentials_error()
+    return payload
+
+
+def get_current_user(
+    payload: dict = Depends(get_token_payload), db: Session = Depends(get_db)
+) -> User:
+    try:
+        user_id = int(payload["sub"])
+    except (ValueError, TypeError):
+        raise _credentials_error() from None
+
+    user = db.get(User, user_id)
+    if user is None:
+        raise _credentials_error()
+    return user

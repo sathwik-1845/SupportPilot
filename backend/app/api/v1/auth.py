@@ -1,47 +1,71 @@
-from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate, Token
-from app.core.security import get_password_hash, verify_password, create_access_token
-from app.models.user import User
-from app.db.session import get_db # Assuming get_db yields a database session
-from app.api.deps import get_current_user
+
+from app.api.deps import get_current_user, get_token_payload
+from app.core.security import (
+    DUMMY_HASH,
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
+from app.db.session import get_db
+from app.models.user import RevokedToken, User
+from app.schemas.user import Token, UserCreate, UserOut
 
 router = APIRouter()
 
-@router.post("/register")
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # 1. Check database for existing email
-    existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # 2. Hash password and save to REAL database
-    hashed_password = get_password_hash(user.password)
-    new_user = User(email=user.email, hashed_password=hashed_password)
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return {"message": "User registered successfully"}
+
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def register_user(data: UserCreate, db: Session = Depends(get_db)):
+    if db.scalar(select(User).where(User.email == data.email)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+
+    user = User(email=data.email, hashed_password=get_password_hash(data.password))
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:  # two simultaneous requests with the same email
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered") from None
+    db.refresh(user)
+    return user
+
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # 1. Search database for user
-    user = db.query(User).filter(User.email == form_data.username).first()
-    
-    # 2. Verify password
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    
-    # 3. Generate token
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    email = form_data.username.strip().lower()  # form field "username" carries the email
+    user = db.scalar(select(User).where(User.email == email))
 
-@router.get("/me")
-def read_current_user(current_user: dict = Depends(get_current_user)):
-    return {
-        "message": "You have successfully accessed a protected route!",
-        "user_data": current_user
-    }
+    # Always verify a hash so timing doesn't reveal whether the email exists
+    ok = verify_password(form_data.password, user.hashed_password if user else DUMMY_HASH)
+    if not user or not ok:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token, expires_in = create_access_token(user.id)
+    return Token(access_token=token, expires_in=expires_in)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(payload: dict = Depends(get_token_payload), db: Session = Depends(get_db)):
+    db.add(
+        RevokedToken(
+            jti=payload["jti"],
+            expires_at=datetime.fromtimestamp(payload["exp"], tz=timezone.utc),
+        )
+    )
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/me", response_model=UserOut)
+def read_current_user(current_user: User = Depends(get_current_user)):
+    return current_user
