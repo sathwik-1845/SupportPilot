@@ -33,6 +33,8 @@ def register_business(data: BusinessRegister, db: Session = Depends(get_db)):
         business_name=data.business_name,
         business_email=data.business_email,
         industry=data.industry,
+        description=data.description,
+        website_url=data.website_url,
     )
     db.add(tenant)
     db.flush()  # assigns tenant.id

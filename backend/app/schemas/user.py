@@ -6,11 +6,8 @@ from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import Role
+from app.schemas.common import LowerEmail, WebsiteUrl
 from app.schemas.tenant import TenantOut
-
-
-def _normalize_email(v: str) -> str:
-    return v.strip().lower()
 
 
 def _check_password(v: str) -> str:
@@ -19,19 +16,20 @@ def _check_password(v: str) -> str:
     return v
 
 
-LowerEmail = Annotated[EmailStr, AfterValidator(_normalize_email)]
 Password = Annotated[str, Field(min_length=8, max_length=128), AfterValidator(_check_password)]
 FullName = Annotated[str, Field(min_length=2, max_length=120)]
 
 
 class BusinessRegister(BaseModel):
-    """Public sign-up: creates a tenant plus its first Business Admin."""
+    """Public sign-up: creates a tenant plus its first Business Admin, atomically."""
 
     model_config = ConfigDict(extra="forbid")
 
     business_name: Annotated[str, Field(min_length=2, max_length=200)]
     business_email: LowerEmail
     industry: Annotated[str, Field(min_length=2, max_length=100)]
+    description: Annotated[str | None, Field(max_length=1000)] = None
+    website_url: WebsiteUrl = None
     admin_full_name: FullName
     admin_email: LowerEmail
     password: Password

@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Uuid, func
+from sqlalchemy import DateTime, String, Text, Uuid, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +22,8 @@ class Tenant(Base):
     business_name: Mapped[str] = mapped_column(String(200), nullable=False)
     business_email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     industry: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    website_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[TenantStatus] = mapped_column(
         SAEnum(TenantStatus, native_enum=False, length=20, values_callable=lambda e: [m.value for m in e]),
         nullable=False,
