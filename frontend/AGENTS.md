@@ -31,3 +31,4 @@ use the editor.
 
 ## Project architecture
 - Keep the SupportPilot marketing content as one long-scrolling root page with semantic in-page anchors; this matches the requested single landing-page experience.
+- Keep external account API requests in a small browser API client, with session tokens stored in localStorage as requested, because this app uses the user's separate API rather than Lovable Cloud authentication.

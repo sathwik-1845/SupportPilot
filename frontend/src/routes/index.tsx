@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Activity,
@@ -27,6 +27,16 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+
+const mobileNavLinks: Array<[string, string]> = [
+  ["Log in", "/login"],
+  ["Product", "#product"],
+  ["Features", "#features"],
+  ["How it works", "#how-it-works"],
+  ["AI knowledge base", "#knowledge-base"],
+  ["FAQ", "#faq"],
+  ["Pricing", "#pricing"],
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -75,8 +85,9 @@ function Index() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <Link className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex" to="/login">Log in</Link>
             <Button asChild className="hidden sm:inline-flex" size="sm">
-              <a href="#pricing">Explore plans <ArrowRight aria-hidden="true" /></a>
+              <Link to="/signup">Explore plans <ArrowRight aria-hidden="true" /></Link>
             </Button>
             <Button
               aria-expanded={menuOpen}
@@ -92,14 +103,7 @@ function Index() {
         </div>
         {menuOpen && (
           <nav aria-label="Mobile navigation" className="border-t border-border px-5 py-3 md:hidden">
-            {[
-              ["Product", "#product"],
-              ["Features", "#features"],
-              ["How it works", "#how-it-works"],
-              ["AI knowledge base", "#knowledge-base"],
-              ["FAQ", "#faq"],
-              ["Pricing", "#pricing"],
-            ].map(([label, href]) => (
+            {mobileNavLinks.map(([label, href]) => (
               <a
                 className="block py-3 text-sm font-medium text-foreground"
                 href={href}
@@ -110,7 +114,7 @@ function Index() {
               </a>
             ))}
             <Button asChild className="mt-2 w-full">
-              <a href="#pricing" onClick={closeMenu}>Explore plans <ArrowRight aria-hidden="true" /></a>
+              <Link to="/signup" onClick={closeMenu}>Explore plans <ArrowRight aria-hidden="true" /></Link>
             </Button>
           </nav>
         )}
@@ -131,7 +135,7 @@ function Index() {
             </p>
             <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg">
-                <a href="#pricing">Start Free <ArrowRight aria-hidden="true" /></a>
+                <Link to="/signup">Start Free <ArrowRight aria-hidden="true" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <a href="#features">Explore Features</a>
